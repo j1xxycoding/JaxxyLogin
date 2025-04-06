@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Telegram Auth System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1c2c 0%, #2a2d3e 100%);
+            min-height: 100vh;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        .animate-slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+        .table-row-hover:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-900">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8 animate-fade-in">
+            <div>
+                <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
+                <p class="text-gray-400">Manage user accounts and permissions</p>
+            </div>
+            <button 
+                onclick="logout()"
+                class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition duration-200"
+            >
+                <i class="fas fa-sign-out-alt mr-2"></i>
+                Logout
+            </button>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 animate-slide-up">
+            <div class="dashboard-card rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-500 bg-opacity-20 rounded-lg">
+                        <i class="fas fa-users text-blue-500 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-gray-400 text-sm">Total Users</h3>
+                        <p id="totalUsers" class="text-2xl font-semibold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-yellow-500 bg-opacity-20 rounded-lg">
+                        <i class="fas fa-clock text-yellow-500 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-gray-400 text-sm">Pending</h3>
+                        <p id="pendingUsers" class="text-2xl font-semibold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-500 bg-opacity-20 rounded-lg">
+                        <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-gray-400 text-sm">Active</h3>
+                        <p id="activeUsers" class="text-2xl font-semibold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card rounded-xl p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-red-500 bg-opacity-20 rounded-lg">
+                        <i class="fas fa-ban text-red-500 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-gray-400 text-sm">Banned</h3>
+                        <p id="bannedUsers" class="text-2xl font-semibold text-white">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="dashboard-card rounded-xl p-6 animate-slide-up" style="animation-delay: 0.2s">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-white">User Management</h2>
+                <div class="flex space-x-4">
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="Search users..." 
+                            class="bg-gray-800 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onkeyup="filterUsers()"
+                        >
+                        <i class="fas fa-search absolute right-3 top-3 text-gray-400"></i>
+                    </div>
+                    <button 
+                        onclick="refreshUsers()"
+                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
+                    >
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-gray-400 border-b border-gray-700">
+                            <th class="pb-3 px-4">Key ID</th>
+                            <th class="pb-3 px-4">Telegram ID</th>
+                            <th class="pb-3 px-4">Username</th>
+                            <th class="pb-3 px-4">Status</th>
+                            <th class="pb-3 px-4">Joined</th>
+                            <th class="pb-3 px-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <!-- User rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 id="modalTitle" class="text-xl font-semibold text-white mb-4"></h3>
+            <p id="modalMessage" class="text-gray-400 mb-6"></p>
+            <div class="flex justify-end space-x-4">
+                <button 
+                    onclick="closeModal()"
+                    class="px-4 py-2 text-gray-400 hover:text-white transition duration-200"
+                >
+                    Cancel
+                </button>
+                <button 
+                    id="confirmButton"
+                    class="px-4 py-2 rounded-lg text-white transition duration-200"
+                >
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 transform transition-transform duration-300 translate-x-full">
+        <div class="bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <script>
+        let users = [];
+
+        // Load users when page loads
+        window.addEventListener('load', () => {
+            loadUsers();
+            loadStats();
+        });
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/admin/users');
+                const data = await response.json();
+                
+                if (data.success) {
+                    users = data.users;
+                    renderUsers();
+                } else {
+                    showToast('Failed to load users');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+                showToast('Error loading users');
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/admin/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalUsers').textContent = data.stats.total;
+                    document.getElementById('pendingUsers').textContent = data.stats.pending;
+                    document.getElementById('activeUsers').textContent = data.stats.active;
+                    document.getElementById('bannedUsers').textContent = data.stats.banned;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function renderUsers() {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+
+            users.forEach(user => {
+                const row = document.createElement('tr');
+                row.className = 'table-row-hover transition duration-200';
+                
+                const joinDate = new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+
+                const statusColors = {
+                    pending: 'bg-yellow-500',
+                    active: 'bg-green-500',
+                    banned: 'bg-red-500'
+                };
+
+                row.innerHTML = `
+                    <td class="py-4 px-4 text-gray-300">${user.keyId}</td>
+                    <td class="py-4 px-4 text-gray-300">${user.telegramId}</td>
+                    <td class="py-4 px-4 text-gray-300">${user.username}</td>
+                    <td class="py-4 px-4">
+                        <span class="px-2 py-1 rounded-full text-xs ${statusColors[user.status]} text-white">
+                            ${user.status}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4 text-gray-300">${joinDate}</td>
+                    <td class="py-4 px-4">
+                        ${user.status === 'pending' ? `
+                            <button 
+                                onclick="showConfirmation('activate', '${user.keyId}')"
+                                class="text-green-500 hover:text-green-400 mr-3 transition duration-200"
+                            >
+                                <i class="fas fa-check-circle"></i>
+                            </button>
+                        ` : ''}
+                        ${user.status !== 'banned' ? `
+                            <button 
+                                onclick="showConfirmation('ban', '${user.keyId}')"
+                                class="text-red-500 hover:text-red-400 transition duration-200"
+                            >
+                                <i class="fas fa-ban"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.getElementById('usersTableBody').getElementsByTagName('tr');
+
+            Array.from(rows).forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        }
+
+        function showConfirmation(action, keyId) {
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('modalTitle');
+            const message = document.getElementById('modalMessage');
+            const confirmBtn = document.getElementById('confirmButton');
+
+            if (action === 'activate') {
+                title.textContent = 'Activate User';
+                message.textContent = 'Are you sure you want to activate this user?';
+                confirmBtn.className = 'px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white transition duration-200';
+            } else {
+                title.textContent = 'Ban User';
+                message.textContent = 'Are you sure you want to ban this user?';
+                confirmBtn.className = 'px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition duration-200';
+            }
+
+            confirmBtn.onclick = () => performAction(action, keyId);
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        async function performAction(action, keyId) {
+            try {
+                const response = await fetch(`/admin/${action}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ keyId })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(`User ${action}d successfully`, 'success');
+                    await loadUsers();
+                    await loadStats();
+                } else {
+                    showToast(`Failed to ${action} user`);
+                }
+            } catch (error) {
+                console.error(`Error ${action}ing user:`, error);
+                showToast(`Error ${action}ing user`);
+            }
+
+            closeModal();
+        }
+
+        async function refreshUsers() {
+            await loadUsers();
+            await loadStats();
+            showToast('Users list refreshed', 'success');
+        }
+
+        function logout() {
+            window.location.href = '/auth/logout';
+        }
+
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            const bgColors = {
+                success: 'bg-green-600',
+                error: 'bg-red-600',
+                info: 'bg-blue-600'
+            };
+            
+            toast.firstElementChild.className = `${bgColors[type] || bgColors.error} text-white px-6 py-3 rounded-lg shadow-lg`;
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-x-full');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
