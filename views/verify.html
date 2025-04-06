@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - Telegram Auth System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1a1c2c 0%, #2a2d3e 100%);
+            min-height: 100vh;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        .animate-slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .input-focus-effect:focus {
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        .otp-input {
+            width: 3rem;
+            height: 3rem;
+            font-size: 1.5rem;
+            text-align: center;
+            margin: 0 0.25rem;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center">
+    <div class="w-full max-w-md p-8 animate-fade-in">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-8 animate-slide-up">
+            <div class="text-center mb-8">
+                <i class="fas fa-shield-alt text-6xl text-blue-500 mb-4"></i>
+                <h1 class="text-2xl font-bold text-white mb-2">Verify OTP</h1>
+                <p class="text-gray-400">Enter the code sent to your Telegram</p>
+            </div>
+
+            <form id="verifyForm" class="space-y-6">
+                <div class="flex justify-center space-x-2 mb-6">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="2">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="3">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="4">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="5">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="6">
+                    <input type="text" maxlength="1" class="otp-input bg-gray-700 border border-gray-600 rounded-lg text-white text-center focus:outline-none focus:border-blue-500 input-focus-effect" data-next="submit">
+                </div>
+
+                <div id="timer" class="text-center text-gray-400 mb-4">
+                    Code expires in: <span id="countdown">05:00</span>
+                </div>
+
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition duration-200"
+                >
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Verify OTP
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <button id="resendBtn" class="text-blue-400 hover:text-blue-300 text-sm transition duration-200" disabled>
+                    <i class="fas fa-redo-alt mr-1"></i>
+                    Resend Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 transform transition-transform duration-300 translate-x-full">
+        <div class="bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
+            <span id="toastMessage"></span>
+        </div>
+    </div>
+
+    <script>
+        // OTP input handling
+        const otpInputs = document.querySelectorAll('.otp-input');
+        otpInputs.forEach((input, index) => {
+            input.addEventListener('keyup', (e) => {
+                if (e.key >= 0 && e.key <= 9) {
+                    const next = input.dataset.next;
+                    if (next !== 'submit') {
+                        otpInputs[index + 1].focus();
+                    }
+                } else if (e.key === 'Backspace') {
+                    if (index !== 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                }
+            });
+        });
+
+        // Timer functionality
+        let timeLeft = 300; // 5 minutes in seconds
+        const countdownEl = document.getElementById('countdown');
+        const resendBtn = document.getElementById('resendBtn');
+
+        function updateTimer() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            countdownEl.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            
+            if (timeLeft === 0) {
+                clearInterval(timerInterval);
+                resendBtn.disabled = false;
+                resendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                timeLeft--;
+            }
+        }
+
+        const timerInterval = setInterval(updateTimer, 1000);
+        updateTimer();
+
+        // Form submission
+        document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const otp = Array.from(otpInputs).map(input => input.value).join('');
+            
+            try {
+                const response = await fetch('/auth/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ otp })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    showToast(data.error || 'Verification failed. Please try again.');
+                }
+            } catch (error) {
+                showToast('An error occurred. Please try again.');
+            }
+        });
+
+        // Resend OTP
+        resendBtn.addEventListener('click', async () => {
+            try {
+                const response = await fetch('/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ resend: true })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    timeLeft = 300;
+                    resendBtn.disabled = true;
+                    resendBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    showToast('New OTP sent successfully!', 'success');
+                } else {
+                    showToast(data.error || 'Failed to resend OTP.');
+                }
+            } catch (error) {
+                showToast('An error occurred. Please try again.');
+            }
+        });
+
+        function showToast(message, type = 'error') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toast.firstElementChild.className = type === 'success' 
+                ? 'bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg'
+                : 'bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg';
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('translate-x-full');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
